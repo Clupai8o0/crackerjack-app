@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Crackerjack",
+    "slug": "crackerjack",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "crackerjack",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.crackerjack.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Required to upload portfolio photos.",
+        "NSPhotoLibraryUsageDescription": "Required to select portfolio images and videos.",
+        "NSMicrophoneUsageDescription": "Required when recording video portfolio items.",
+        "NSLocationWhenInUseUsageDescription": "Used to show your city on your profile and help organizers find you.",
+        "NSUserNotificationsUsageDescription": "We'll notify you when you receive a booking request or message."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.crackerjack.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#39FF7A"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "crackerjack",
+          "project": "crackerjack-rn"
+        }
+      ],
+      "@sentry/react-native"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

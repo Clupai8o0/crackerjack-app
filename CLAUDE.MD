@@ -56,13 +56,10 @@ If a question isn't answered by any of these, see "What to ask the owner about" 
 
 ## Current status
 
-Early Phase 1 — repo not yet initialized. The first session's job is to bootstrap per [`docs/phases.md`](./docs/phases.md) §"Phase 1".
-
-When status changes, update this section. Format:
 ```
-Current phase: <number — name>
-Last shipped: <commit short SHA, brief description>
-Next up: <one-line description of next task>
+Current phase: 1 — Foundation
+Last shipped: (uncommitted) Full Phase 1 scaffold — Expo 55, all design system primitives, auth flows, Supabase migrations, Sentry + PostHog
+Next up: Create hosted Supabase project (task 1.2), then run supabase init + supabase link, apply migrations, verify local stack
 ```
 
 ---
