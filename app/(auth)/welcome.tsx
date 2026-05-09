@@ -1,9 +1,47 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MeshGradientView } from 'expo-mesh-gradient';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, Text as RNText, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  Text as RNText,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Glow, Text } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
 import { useSignInWithApple, useSignInWithGoogle } from '@/features/auth/mutations';
 import { T } from '@/lib/theme';
+
+// Mesh background — matches the onboarding hero "artists" slide:
+// dark green base with two neon-green blobs (top-right and bottom-left)
+// so the welcome screen reads as a continuation of onboarding.
+const MESH_BG = '#06180C';
+const MESH_OPACITY = 0.55;
+const MESH_COLORS = [
+  MESH_BG,
+  MESH_BG,
+  '#7BFFAE',
+  MESH_BG,
+  MESH_BG,
+  MESH_BG,
+  '#3BFFB8',
+  MESH_BG,
+  MESH_BG,
+];
+const MESH_POINTS: number[][] = [
+  [0.0, 0.0],
+  [0.5, 0.0],
+  [1.0, 0.0],
+  [0.0, 0.5],
+  [0.5, 0.5],
+  [1.0, 0.5],
+  [0.0, 1.0],
+  [0.5, 1.0],
+  [1.0, 1.0],
+];
 
 export default function Welcome() {
   const router = useRouter();
@@ -12,7 +50,25 @@ export default function Welcome() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
-      <Glow size={300} style={{ top: -60, alignSelf: 'center', opacity: 0.6 }} />
+      {/* Mesh background — fades into T.bg before buttons */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[StyleSheet.absoluteFill, { opacity: MESH_OPACITY }]}>
+          <MeshGradientView
+            style={StyleSheet.absoluteFill}
+            columns={3}
+            rows={3}
+            colors={MESH_COLORS}
+            points={MESH_POINTS}
+            smoothsColors
+            resolution={{ x: 8, y: 8 }}
+          />
+        </View>
+        <LinearGradient
+          colors={['transparent', 'transparent', T.bg, T.bg]}
+          locations={[0, 0.4, 0.7, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
 
       <View
         style={{
@@ -139,30 +195,10 @@ function AppleMark() {
 
 function CJMark() {
   return (
-    <View
-      style={{
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        borderWidth: 2,
-        borderColor: T.ink,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Text variant="display-s" color={T.ink}>
-        J
-      </Text>
-      <View
-        style={{
-          position: 'absolute',
-          width: 22,
-          height: 22,
-          backgroundColor: T.bg,
-          bottom: -2,
-          right: -2,
-        }}
-      />
-    </View>
+    <Image
+      source={require('@/assets/images/crackerjack-logo.png')}
+      style={{ width: 110, height: 110 }}
+      contentFit="contain"
+    />
   );
 }
