@@ -24,7 +24,7 @@ type ArtistCategory =
 export const track = {
   appOpened: () => posthog?.capture('app_opened'),
   screenViewed: (props: { screen: string }) => posthog?.capture('screen_viewed', props),
-  signupCompleted: (props: { method: 'email' | 'phone' }) =>
+  signupCompleted: (props: { method: 'email' | 'phone' | 'google' | 'apple' }) =>
     posthog?.capture('signup_completed', props),
   roleSelected: (props: { role: 'artist' | 'organizer' | 'both' }) =>
     posthog?.capture('role_selected', props),

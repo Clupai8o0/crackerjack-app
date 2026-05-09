@@ -57,9 +57,9 @@ If a question isn't answered by any of these, see "What to ask the owner about" 
 ## Current status
 
 ```
-Current phase: 1 — Foundation
-Last shipped: (uncommitted) Full Phase 1 scaffold — Expo 55, all design system primitives, auth flows, Supabase migrations, Sentry + PostHog
-Next up: Create hosted Supabase project (task 1.2), then run supabase init + supabase link, apply migrations, verify local stack
+Current phase: 2 — Artist side
+Last shipped: Phase 1 complete — full scaffold, design system, auth flows (email+password+OTP+role), Supabase hosted project + all migrations applied, Sentry + PostHog wired
+Next up: Phase 2.1 — Artist onboarding multi-step flow (bio → categories → languages/experience → pricing → service radius)
 ```
 
 ---

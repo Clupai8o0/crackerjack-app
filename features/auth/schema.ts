@@ -7,7 +7,6 @@ export const signInSchema = z.object({
 export type SignInValues = z.infer<typeof signInSchema>;
 
 export const signUpSchema = z.object({
-  displayName: z.string().min(2, 'At least 2 characters').max(50),
   email: z.string().email('Enter a valid email'),
   password: z.string().min(8, 'At least 8 characters'),
 });
@@ -27,3 +26,8 @@ export const roleSchema = z.object({
   role: z.enum(['artist', 'organizer', 'both']),
 });
 export type RoleValues = z.infer<typeof roleSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Enter a valid email'),
+});
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;

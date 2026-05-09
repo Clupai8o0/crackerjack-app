@@ -12,10 +12,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import '../global.css';
 
+import { useProfile } from '@/features/auth/queries';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/features/auth/store';
 import { useSession } from '@/hooks/useSession';
 import { initAnalytics, track } from '@/lib/analytics';
 import { initSentry } from '@/lib/errors';
+import type { UserRole } from '@/types/database';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,24 +34,60 @@ const queryClient = new QueryClient({
 
 function AuthGate() {
   const { session, initialized } = useSession();
-  const role = useAuthStore((s) => s.role);
+  const { setRole, setSetupComplete } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
 
+  const userId = session?.user?.id;
+  const { data: profile, isFetched: profileFetched, isError: profileError } = useProfile(userId);
+
+  // Sync profile → store so downstream components can read role etc.
+  useEffect(() => {
+    if (profile) {
+      setRole(profile.role as UserRole | null);
+      setSetupComplete(profile.setup_complete);
+    }
+  }, [profile, setRole, setSetupComplete]);
+
   useEffect(() => {
     if (!initialized) return;
+    if (session && !profileFetched) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inAppGroup = segments[0] === '(app)';
-
-    if (!session) {
-      if (!inAuthGroup) router.replace('/(auth)/sign-in');
-    } else if (!role) {
-      router.replace('/(auth)/role');
-    } else {
-      if (!inAppGroup) router.replace('/(app)');
+    // Session exists but profile is gone (DB reset, deleted account) — sign out
+    if (session && profileFetched && profileError) {
+      supabase.auth.signOut();
+      return;
     }
-  }, [session, role, initialized, router, segments]);
+
+    const seg0 = segments[0] as string;
+    const inOnboarding = seg0 === '(onboarding)';
+    const inAuthGroup = seg0 === '(auth)';
+    const inAppGroup = seg0 === '(app)';
+    const inSetup = inAuthGroup && (segments[1] as string) === 'setup';
+
+    // Not signed in → onboarding first, then auth screens
+    if (!session) {
+      if (!inOnboarding && !inAuthGroup) router.replace('/(onboarding)');
+      return;
+    }
+
+    if (!profile?.role) {
+      const inRole = inAuthGroup && segments[1] === 'role';
+      if (!inRole) router.replace('/(auth)/role');
+      return;
+    }
+
+    if (!profile?.setup_complete) {
+      if (!inSetup) {
+        const setupRoute =
+          profile.role === 'organizer' ? '/(auth)/setup/organizer' : '/(auth)/setup/artist';
+        router.replace(setupRoute as Parameters<typeof router.replace>[0]);
+      }
+      return;
+    }
+
+    if (!inAppGroup) router.replace('/(app)');
+  }, [session, profile, profileFetched, initialized, router, segments]);
 
   return <Slot />;
 }

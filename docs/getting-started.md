@@ -214,6 +214,32 @@ Things that will go wrong; how to fix:
 
 - **EAS Build fails on iOS with "missing provisioning profile"**: `eas credentials` and let EAS manage them.
 
+- **`pnpm ios` fails with `No code signing certificates are available to use`** (even targeting a simulator):
+
+  This happens when `app.json` plugins include `expo-apple-authentication` (or anything that adds entitlements like `com.apple.developer.applesignin` or `com.apple.developer.associated-domains`). Expo CLI requires a signing identity for *simulator* builds when those entitlements are present — see `node_modules/@expo/cli/build/src/run/ios/codeSigning/simulatorCodeSigning.js`. The error message wrongly mentions "physical iOS devices".
+
+  Three-step fix (one-time, free — no paid Apple Developer Program needed):
+
+  1. **Add a Personal Team to Xcode.** Open Xcode → **Settings → Apple Accounts** → **+** → sign in with your Apple ID. Xcode auto-creates a free "Personal Team".
+
+  2. **Generate an Apple Development cert.** Same panel → click your account → click your **Personal Team** row → **Manage Certificates...** → **+** → **Apple Development**. Wait a few seconds for it to appear.
+
+  3. **Install the WWDR intermediate cert** (the cert from step 2 chains to it; without it, `security find-identity -v -p codesigning` reports 0 valid identities even though `security find-identity -p codesigning` shows the cert):
+     ```bash
+     curl -O https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer
+     security import AppleWWDRCAG3.cer -k ~/Library/Keychains/login.keychain-db
+     ```
+
+  Verify:
+  ```bash
+  security find-identity -v -p codesigning
+  # → 1 valid identities found ("Apple Development: <email> (XXXXXXXXXX)")
+  ```
+
+  Then `pnpm ios` works. The team ID gets cached in `app.json` under `ios.appleTeamId` after the first build, so subsequent builds don't prompt.
+
+- **`expo run:ios` appears to hang for minutes with no `xcodebuild` process running**: Expo is waiting for interactive input (e.g. team selection) and your shell pipeline is buffering its prompt. Don't pipe `expo run:ios` through `tail`/`head`/`grep` — let it write directly to the terminal, or use `--device <UDID>` and pre-set `ios.appleTeamId` in `app.json` to avoid the prompt entirely.
+
 ---
 
 ## 10 · Sanity check

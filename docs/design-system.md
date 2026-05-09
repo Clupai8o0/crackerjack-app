@@ -56,11 +56,11 @@ export const T = {
   surface:   '#0E0E10',
   raised:    '#16161A',
   line:      '#26262C',
-  // ink
-  ink:       '#F5F1EB',
-  ink2:      '#C9C1D5',
-  ink3:      '#7A7A82',
-  inkDeep:   '#1A0F33',
+  // ink — pure white/black only, no colour tinge; hierarchy via opacity
+  ink:       '#FFFFFF',
+  ink2:      'rgba(255,255,255,0.55)',
+  ink3:      'rgba(255,255,255,0.35)',
+  inkDeep:   '#000000',
   // accent
   accent:    '#39FF7A',
   accentInk: '#08210F',

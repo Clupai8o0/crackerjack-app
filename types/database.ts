@@ -45,6 +45,7 @@ export type Database = {
           country: string;
           notification_prefs: Json;
           expo_push_token: string | null;
+          setup_complete: boolean;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;

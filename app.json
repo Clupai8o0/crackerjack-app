@@ -40,6 +40,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-router",
       "expo-font",
       [
@@ -64,7 +65,9 @@
           "project": "crackerjack-rn"
         }
       ],
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
@@ -74,8 +77,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "14c30b28-666d-4c7b-aceb-9719bab10802"
       }
-    }
+    },
+    "owner": "clupai"
   }
 }

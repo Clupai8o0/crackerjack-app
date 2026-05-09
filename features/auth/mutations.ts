@@ -1,9 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import { track } from '@/lib/analytics';
 import { addBreadcrumb, captureException } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types/database';
 import type { SignInValues, SignUpValues } from './schema';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export function useSignIn() {
   return useMutation({
@@ -24,7 +28,6 @@ export function useSignUp() {
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
-        options: { data: { display_name: values.displayName } },
       });
       if (error) throw error;
       track.signupCompleted({ method: 'email' });
@@ -69,6 +72,61 @@ export function useSelectRole() {
     },
     onSuccess: (_data, { userId }) => {
       queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+export function useSignInWithGoogle() {
+  return useMutation({
+    mutationFn: async () => {
+      addBreadcrumb('google_signin_attempted');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'crackerjack://auth/callback',
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) throw error;
+      if (!data.url) throw new Error('No OAuth URL returned');
+      const result = await WebBrowser.openAuthSessionAsync(data.url, 'crackerjack://auth/callback');
+      if (result.type === 'success') {
+        await supabase.auth.exchangeCodeForSession(result.url);
+        track.signupCompleted({ method: 'google' });
+      }
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+export function useSignInWithApple() {
+  return useMutation({
+    mutationFn: async () => {
+      addBreadcrumb('apple_signin_attempted');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('No identity token from Apple');
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) throw error;
+      track.signupCompleted({ method: 'apple' });
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
     },
     onError: (err) => captureException(err, { feature: 'auth' }),
   });

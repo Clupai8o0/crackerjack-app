@@ -13,45 +13,45 @@ For each phase: pick the next unfinished task, implement, verify, commit, update
 ### Tasks
 
 #### 1.1 Repo & infra
-- [ ] Initialize Expo + TypeScript project, configure path aliases, install all stack deps
-- [ ] Configure Biome (lint + format), TypeScript strict mode
-- [ ] Set up GitHub Actions CI: typecheck + lint on every PR
-- [ ] Create `eas.json` with development / preview / production profiles
-- [ ] `.env.example` with all required keys
+- [x] Initialize Expo + TypeScript project, configure path aliases, install all stack deps
+- [x] Configure Biome (lint + format), TypeScript strict mode
+- [x] Set up GitHub Actions CI: typecheck + lint on every PR
+- [x] Create `eas.json` with development / preview / production profiles
+- [x] `.env.example` with all required keys
 
 #### 1.2 Supabase
-- [ ] Create hosted Supabase project (Mumbai or Singapore region)
-- [ ] `supabase init`, link to remote, verify local stack runs
-- [ ] Migration `0001_init.sql` — all V1 tables from [`data-model.md`](./data-model.md)
-- [ ] Migration `0002_rls.sql` — RLS policies for all tables
-- [ ] Migration `0003_indexes.sql` — required indexes
-- [ ] Migration `0004_triggers.sql` — `set_updated_at`, `handle_new_user`, denormalized counters
-- [ ] `supabase/seed.sql` — categories list, a few test artists/organizers, one completed booking with review
-- [ ] Storage buckets `portfolios/`, `avatars/` with RLS
+- [x] Create hosted Supabase project (Mumbai or Singapore region)
+- [x] `supabase init`, link to remote, verify local stack runs
+- [x] Migration `0001_init.sql` — all V1 tables from [`data-model.md`](./data-model.md)
+- [x] Migration `0002_rls.sql` — RLS policies for all tables
+- [x] Migration `0003_indexes.sql` — required indexes
+- [x] Migration `0004_triggers.sql` — `set_updated_at`, `handle_new_user`, denormalized counters
+- [x] `supabase/seed.sql` — categories list, a few test artists/organizers, one completed booking with review
+- [x] Storage buckets `portfolios/`, `avatars/` with RLS
 
 #### 1.3 Design system in code
-- [ ] `lib/theme.ts` token export
-- [ ] Tailwind config consuming theme tokens
-- [ ] Fonts loaded (Inter, Instrument Serif, JetBrains Mono) via `expo-font`
-- [ ] Wave 1 primitives: `Text`, `Pill`, `Button`, `IconButton`, `Avatar`
-- [ ] Wave 2 primitives: `Input`, `FormField`, `Sheet`, `ListRow`
-- [ ] Wave 3 chrome: `Screen`, `StatusBar`, `TabBar`
-- [ ] Wave 4: `PhotoCard`, `Calendar`, `Glow`
-- [ ] `app/dev/components.tsx` stories route showing every variant
+- [x] `lib/theme.ts` token export
+- [x] Tailwind config consuming theme tokens
+- [x] Fonts loaded (Inter, Instrument Serif, JetBrains Mono) via `expo-font`
+- [x] Wave 1 primitives: `Text`, `Pill`, `Button`, `IconButton`, `Avatar`
+- [x] Wave 2 primitives: `Input`, `FormField`, `Sheet`, `ListRow`
+- [x] Wave 3 chrome: `Screen`, `StatusBar`, `TabBar`
+- [x] Wave 4: `PhotoCard`, `Calendar`, `Glow`
+- [x] `app/dev/components.tsx` stories route showing every variant
 
 #### 1.4 Auth
-- [ ] `lib/supabase.ts` — Supabase client, secure storage, auth context provider
-- [ ] Sign-in screen (email + password)
-- [ ] Sign-up screen (email + password)
-- [ ] Phone OTP screen (with email fallback wired since SMS in India is flaky)
-- [ ] Role select screen (artist / organizer)
-- [ ] Auth guard: redirect to `/sign-in` if no session, to `/role` if role null, to `/(app)/` otherwise
-- [ ] Home placeholder showing the user's display name
+- [x] `lib/supabase.ts` — Supabase client, secure storage, auth context provider
+- [x] Sign-in screen (email + password)
+- [x] Sign-up screen (email + password)
+- [x] Phone OTP screen (with email fallback wired since SMS in India is flaky)
+- [x] Role select screen (artist / organizer)
+- [x] Auth guard: redirect to `/sign-in` if no session, to `/role` if role null, to `/(app)/` otherwise
+- [x] Home placeholder showing the user's display name
 
 #### 1.5 Observability
-- [ ] Sentry wired, capturing crash test event
-- [ ] PostHog wired, capturing app open + screen view events
-- [ ] Document event names in `docs/conventions.md` §"Analytics events"
+- [x] Sentry wired, capturing crash test event
+- [x] PostHog wired, capturing app open + screen view events
+- [x] Document event names in `docs/conventions.md` §"Analytics events"
 
 ### Phase 1 done when
 
