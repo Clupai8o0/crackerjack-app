@@ -43,8 +43,8 @@ const MESH_CONFIGS: MeshConfig[] = [
     colors: ['#86FFD4', D, D, D, D, D, D, D, '#7BFFAE'],
   },
   {
-    // CRACKING — blob top-center (lime), blob middle-right (mint)
-    colors: [D, '#C8FF82', D, D, D, '#3BFFB8', D, D, D],
+    // CRACKING — single muted blob middle-right (figure carries the wow factor)
+    colors: [D, D, D, D, D, '#3A8B5C', D, D, D],
   },
 ];
 
@@ -319,8 +319,8 @@ function HeroSlideView({
         />
       </View>
 
-      {/* ── Hero figure (image already contains disc + dots + black bg) ── */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      {/* ── Hero figure (image already contains disc + dots) — base flush to card */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
         <Image
           source={slide.image}
           style={{ width: HERO_FIGURE, height: HERO_FIGURE }}
@@ -335,9 +335,9 @@ function HeroSlideView({
           borderTopLeftRadius: CARD_RADIUS,
           borderTopRightRadius: CARD_RADIUS,
           paddingHorizontal: T.sp7,
-          paddingTop: T.sp8,
+          paddingTop: 80,
           paddingBottom: T.sp9 + bottomInset,
-          gap: T.sp6,
+          gap: T.sp7,
           alignItems: 'center',
         }}
       >
