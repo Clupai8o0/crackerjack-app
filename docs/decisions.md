@@ -193,6 +193,24 @@ These were made during planning, before the repo was initialized. They're load-b
 
 ---
 
+## 0019 · Auth flow rebuild — supersedes 0013
+**Date**: 2026-05-09
+**Status**: Decided (supersedes 0013)
+**Context**: 0013 had email AND phone OTP available on every auth surface as parallel sign-in paths. In practice: (a) it doubled the auth UI; (b) Indian SMS delivery is still flaky enough that phone-as-primary-sign-in caused real lockouts; (c) the client mockups expected a different shape — social/email entry, then phone as a *post-signup verification step*, not an alternate path; (d) the founders described attendees ("party-goers") as a third role separate from organizers but the schema only had `both` (artist+organizer).
+**Decision**:
+- Auth entry: Google + Apple + email/password only (no Facebook in V1).
+- Phone OTP becomes a one-time post-signup gate for everyone, not an alt sign-in path. Stored on `profiles.phone_verified_at`.
+- Email confirmation disabled in Supabase — phone OTP is the sole verification.
+- Three roles: `artist`, `organizer`, `attendee`. Attendee is discovery-only (browse + follow, can't book). New enum value added; old `both` kept for back-compat but not surfaced in UI.
+- Artists are invite-only (waitlist): full KYC required up front (ID front + back + selfie + bank/UPI). New `artist_application_status` enum (`draft`/`submitted`/`approved`/`rejected`) on `artist_profiles`. Admin flips to `approved` + `is_verified=true` to grant access. Until then they sit on `/(auth)/waitlist`.
+**Consequences**:
+- One verification path (SMS-only) means a user with bad SMS delivery is locked out — no email fallback. Mitigation: surface clear retry + "use a different number" UX; can re-introduce email fallback later if support load justifies it.
+- KYC gate front-loads work for artists. Mitigation: admin should aim for <48hr turnaround so the funnel doesn't collapse.
+- Migration `0006_artist_application.sql` adds the new enum value, columns, table, storage bucket, and RLS. **Must be applied to the hosted Supabase project before the app build is deployed.**
+- Supabase project setting "Confirm email" must be turned OFF in the dashboard. Code expects it.
+
+---
+
 ## How to add an entry
 
 1. Increment the highest existing number

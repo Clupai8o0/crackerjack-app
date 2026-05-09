@@ -5,7 +5,7 @@ import { track } from '@/lib/analytics';
 import { addBreadcrumb, captureException } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types/database';
-import type { SignInValues, SignUpValues } from './schema';
+import type { ProfileBasicsValues, SignInValues, SignUpValues } from './schema';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -31,28 +31,6 @@ export function useSignUp() {
       });
       if (error) throw error;
       track.signupCompleted({ method: 'email' });
-      return data;
-    },
-    onError: (err) => captureException(err, { feature: 'auth' }),
-  });
-}
-
-export function useSignInWithPhone() {
-  return useMutation({
-    mutationFn: async (phone: string) => {
-      const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) throw error;
-    },
-    onError: (err) => captureException(err, { feature: 'auth' }),
-  });
-}
-
-export function useVerifyOtp() {
-  return useMutation({
-    mutationFn: async ({ phone, token }: { phone: string; token: string }) => {
-      const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
-      if (error) throw error;
-      track.signupCompleted({ method: 'phone' });
       return data;
     },
     onError: (err) => captureException(err, { feature: 'auth' }),
@@ -142,5 +120,94 @@ export function useSignOut() {
     onSuccess: () => {
       queryClient.clear();
     },
+  });
+}
+
+// ─── Phone-as-primary-auth (legacy, kept for backward compat until otp.tsx is replaced) ─────
+/** @deprecated Phone is no longer a primary sign-in path. Use useSendPhoneOtp for post-auth verification. */
+export function useSignInWithPhone() {
+  return useMutation({
+    mutationFn: async (phone: string) => {
+      const { error } = await supabase.auth.signInWithOtp({ phone });
+      if (error) throw error;
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+/** @deprecated Use useVerifyPhoneOtp for post-auth phone verification. */
+export function useVerifyOtp() {
+  return useMutation({
+    mutationFn: async ({ phone, token }: { phone: string; token: string }) => {
+      const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+      if (error) throw error;
+      track.signupCompleted({ method: 'phone' });
+      return data;
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+// ─── New phone verification (post-auth) ──────────────────────────────────────
+
+// Initiates phone verification for an already-authenticated user.
+// Uses updateUser so the phone is attached to the existing auth identity.
+export function useSendPhoneOtp() {
+  return useMutation({
+    mutationFn: async (phone: string) => {
+      addBreadcrumb('send_phone_otp_attempted');
+      const { error } = await supabase.auth.updateUser({ phone });
+      if (error) throw error;
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+export function useVerifyPhoneOtp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ phone, token }: { phone: string; token: string }) => {
+      addBreadcrumb('verify_phone_otp_attempted');
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token,
+        type: 'phone_change',
+      });
+      if (error) throw error;
+      const userId = data.user?.id;
+      if (!userId) throw new Error('No user after OTP verification');
+      const { error: updateError } = await (
+        supabase.from('profiles') as ReturnType<typeof supabase.from>
+      )
+        .update({ phone, phone_verified_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) throw updateError;
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      return data;
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
+  });
+}
+
+export function useUpdateProfileBasics() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: ProfileBasicsValues) => {
+      addBreadcrumb('update_profile_basics_attempted');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await (supabase.from('profiles') as ReturnType<typeof supabase.from>)
+        .update({
+          display_name: values.display_name,
+          city: values.city,
+          avatar_url: values.avatar_url ?? null,
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+    },
+    onError: (err) => captureException(err, { feature: 'auth' }),
   });
 }

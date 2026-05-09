@@ -1,33 +1,36 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text } from '@/components/ui';
 import { useSelectRole } from '@/features/auth/mutations';
 import { useAuthStore } from '@/features/auth/store';
+import { DEMO_MODE } from '@/lib/demo';
 import { T } from '@/lib/theme';
 import type { UserRole } from '@/types/database';
 
-type Role = 'artist' | 'organizer' | 'both';
+type Role = 'artist' | 'organizer' | 'attendee';
 
 const ROLES: { value: Role; title: string; subtitle: string }[] = [
   {
-    value: 'organizer',
-    title: 'Organize events',
-    subtitle: 'I host events and need to book talent.',
-  },
-  {
     value: 'artist',
-    title: 'Artist looking for work',
+    title: "I'm an artist",
     subtitle: 'I perform at events — DJ, photographer, dancer, and more.',
   },
   {
-    value: 'both',
-    title: 'Looking for a party',
-    subtitle: 'I perform and also attend or organize events.',
+    value: 'organizer',
+    title: 'I organize events',
+    subtitle: 'I host events and need to book talent.',
+  },
+  {
+    value: 'attendee',
+    title: "I'm just here to look",
+    subtitle: "Discover artists and follow events. (You can't book — yet.)",
   },
 ];
 
 export default function RoleSelect() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const setRole = useAuthStore((s) => s.setRole);
   const selectRole = useSelectRole();
@@ -35,7 +38,18 @@ export default function RoleSelect() {
   const [error, setError] = useState<string | null>(null);
 
   async function onConfirm() {
-    if (!selected || !user) return;
+    if (!selected) return;
+    if (DEMO_MODE) {
+      const next =
+        selected === 'artist'
+          ? '/(auth)/setup/artist/details'
+          : selected === 'organizer'
+            ? '/(auth)/setup/organizer'
+            : '/(auth)/setup/attendee';
+      router.push(next);
+      return;
+    }
+    if (!user) return;
     setError(null);
     try {
       await selectRole.mutateAsync({ userId: user.id, role: selected as UserRole });
@@ -56,14 +70,10 @@ export default function RoleSelect() {
         }}
       >
         {/* Header */}
-        <View style={{ paddingTop: T.sp9, gap: T.sp3, alignItems: 'center' }}>
-          <CJMark />
-          <View style={{ alignItems: 'center', gap: T.sp2, paddingTop: T.sp3 }}>
-            <Text variant="body">Welcome to Crackerjack</Text>
-            <View style={{ flexDirection: 'row' }}>
-              <Text variant="display-s">What do you want to </Text>
-              <Text variant="display-italic-s">do?</Text>
-            </View>
+        <View style={{ paddingTop: T.sp9, gap: T.sp3 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            <Text variant="display-m">What brings you </Text>
+            <Text variant="display-italic-m">here?</Text>
           </View>
         </View>
 
@@ -113,7 +123,7 @@ export default function RoleSelect() {
 
         <View style={{ gap: T.sp3 }}>
           {error ? (
-            <Text variant="caption" color="#FF6B6B" style={{ textAlign: 'center' }}>
+            <Text variant="caption" color={T.accent} style={{ textAlign: 'center' }}>
               {error}
             </Text>
           ) : null}
@@ -126,35 +136,5 @@ export default function RoleSelect() {
         </View>
       </View>
     </SafeAreaView>
-  );
-}
-
-function CJMark() {
-  return (
-    <View
-      style={{
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        borderWidth: 2,
-        borderColor: T.ink,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Text variant="display-s" color={T.ink}>
-        J
-      </Text>
-      <View
-        style={{
-          position: 'absolute',
-          width: 20,
-          height: 20,
-          backgroundColor: T.bg,
-          bottom: -2,
-          right: -2,
-        }}
-      />
-    </View>
   );
 }

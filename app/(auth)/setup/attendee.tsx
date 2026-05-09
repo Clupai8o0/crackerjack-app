@@ -3,19 +3,12 @@ import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Glow, Text } from '@/components/ui';
 import { useCompleteSetup } from '@/features/artist/mutations';
-import { useAuthStore } from '@/features/auth/store';
 import { DEMO_MODE } from '@/lib/demo';
 import { T } from '@/lib/theme';
 
-export default function OrganizerSetup() {
+export default function AttendeeSetup() {
   const router = useRouter();
   const completeSetup = useCompleteSetup();
-  const user = useAuthStore((s) => s.user);
-
-  const firstName =
-    (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] ??
-    (user?.user_metadata?.name as string | undefined)?.split(' ')[0] ??
-    null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
@@ -30,18 +23,16 @@ export default function OrganizerSetup() {
       >
         <View style={{ paddingTop: T.sp9, gap: T.sp3 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Text variant="display-m">{"You're "}</Text>
-            <Text variant="display-italic-m">set</Text>
+            <Text variant="display-m">Welcome </Text>
+            <Text variant="display-italic-m">in</Text>
           </View>
           <Text variant="body" color={T.ink2}>
-            {firstName
-              ? `Welcome, ${firstName}. Start exploring artists across India.`
-              : 'Start exploring artists across India.'}
+            Browse artists, follow events. You can upgrade to organizer anytime from settings.
           </Text>
         </View>
 
         <Button
-          label="Start exploring"
+          label="Start browsing"
           onPress={() => {
             if (DEMO_MODE) {
               router.replace('/(app)');

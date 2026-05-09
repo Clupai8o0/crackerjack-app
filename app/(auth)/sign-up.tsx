@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, FormField, Text } from '@/components/ui';
 import { useSignInWithApple, useSignInWithGoogle, useSignUp } from '@/features/auth/mutations';
 import { type SignUpValues, signUpSchema } from '@/features/auth/schema';
+import { DEMO_MODE } from '@/lib/demo';
 import { T } from '@/lib/theme';
 
 export default function SignUp() {
@@ -15,48 +16,22 @@ export default function SignUp() {
   const googleSignIn = useSignInWithGoogle();
   const appleSignIn = useSignInWithApple();
   const [authError, setAuthError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   const { control, handleSubmit } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
   });
 
   async function onSubmit(values: SignUpValues) {
+    if (DEMO_MODE) {
+      router.push('/(auth)/verify-phone');
+      return;
+    }
     setAuthError(null);
     try {
       await signUp.mutateAsync(values);
-      setDone(true);
     } catch (err: unknown) {
       setAuthError(err instanceof Error ? err.message : 'Sign-up failed. Try again.');
     }
-  }
-
-  if (done) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: T.sp7,
-            paddingBottom: T.sp9,
-            justifyContent: 'center',
-            gap: T.sp8,
-          }}
-        >
-          <CJMark />
-          <View style={{ gap: T.sp3 }}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              <Text variant="display-m">Check your </Text>
-              <Text variant="display-italic-m">email</Text>
-            </View>
-            <Text variant="body">
-              We sent a confirmation link. Click it, then come back and sign in.
-            </Text>
-          </View>
-          <Button label="Back to sign in" onPress={() => router.replace('/(auth)/sign-in')} />
-        </View>
-      </SafeAreaView>
-    );
   }
 
   return (

@@ -1,3 +1,10 @@
+-- Hosted Supabase installs uuid-ossp / pgcrypto into the `extensions` schema
+-- and does not include it on the default search_path. Without this line,
+-- unqualified calls like uuid_generate_v4() fail when migrations run via the
+-- CLI (`supabase db push`). Locally the path already includes extensions, so
+-- this is a no-op there.
+set search_path = public, extensions;
+
 -- Extensions
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";

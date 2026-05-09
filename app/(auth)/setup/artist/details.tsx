@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import {
@@ -12,69 +13,75 @@ import {
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text } from '@/components/ui';
-import { useCompleteArtistSetup } from '@/features/artist/mutations';
+import { useSaveArtistDetails } from '@/features/artist/mutations';
 import {
   ARTIST_CATEGORIES,
-  type ArtistSetupValues,
-  artistSetupSchema,
+  type ArtistDetailsValues,
+  artistDetailsSchema,
   LANGUAGES,
   PRICE_UNITS,
 } from '@/features/artist/schema';
-import { useAuthStore } from '@/features/auth/store';
+import { DEMO_MODE } from '@/lib/demo';
 import { T } from '@/lib/theme';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
-export default function ArtistSetup() {
+export default function ArtistDetails() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
-  const completeSetup = useCompleteArtistSetup();
-  const user = useAuthStore((s) => s.user);
+  const saveDetails = useSaveArtistDetails();
 
-  const { control, handleSubmit, getValues, setValue, trigger } = useForm<ArtistSetupValues>({
-    resolver: zodResolver(artistSetupSchema),
+  const { control, handleSubmit, getValues, setValue, trigger } = useForm<ArtistDetailsValues>({
+    resolver: zodResolver(artistDetailsSchema),
     defaultValues: {
-      display_name: user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '',
       bio: '',
       categories: [],
       years_experience: undefined,
       languages: [],
       base_price: undefined,
       price_unit: 'per_event',
-      city: '',
       service_radius_km: undefined,
     },
   });
 
   async function goNext() {
-    const fieldsPerStep: (keyof ArtistSetupValues)[][] = [
-      ['display_name'],
+    const fieldsPerStep: (keyof ArtistDetailsValues)[][] = [
+      ['bio'],
       ['categories'],
       ['years_experience', 'languages'],
-      ['base_price', 'price_unit'],
-      ['city', 'service_radius_km'],
+      ['base_price', 'price_unit', 'service_radius_km'],
     ];
-    const valid = await trigger(fieldsPerStep[step]);
-    if (!valid) return;
+    if (!DEMO_MODE) {
+      const valid = await trigger(fieldsPerStep[step]);
+      if (!valid) return;
+    }
     if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
+    } else if (DEMO_MODE) {
+      router.push('/(auth)/setup/artist/id');
     } else {
       handleSubmit(async (values) => {
-        await completeSetup.mutateAsync(values);
+        await saveDetails.mutateAsync(values);
+        router.push('/(auth)/setup/artist/id');
       })();
     }
   }
 
   function skip() {
+    if (step === 1 && !DEMO_MODE) return;
     if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
+    } else if (DEMO_MODE) {
+      router.push('/(auth)/setup/artist/id');
     } else {
       handleSubmit(async (values) => {
-        await completeSetup.mutateAsync(values);
+        await saveDetails.mutateAsync(values);
+        router.push('/(auth)/setup/artist/id');
       })();
     }
   }
 
-  const isLast = step === TOTAL_STEPS - 1;
+  const canSkip = step !== 1;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
@@ -82,7 +89,6 @@ export default function ArtistSetup() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Progress dots */}
         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', paddingTop: T.sp7 }}>
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: stable fixed-length dots
@@ -106,27 +112,27 @@ export default function ArtistSetup() {
           {step === 3 && (
             <StepPricing control={control} setValue={setValue} getValues={getValues} />
           )}
-          {step === 4 && <StepLocation control={control} />}
         </ScrollView>
 
         <View style={{ paddingHorizontal: T.sp7, paddingBottom: T.sp9, gap: T.sp3 }}>
-          <Button
-            label={isLast ? 'Finish setup' : 'Continue'}
-            onPress={goNext}
-            loading={completeSetup.isPending}
-          />
-          <Pressable onPress={skip} hitSlop={12} style={{ alignItems: 'center' }}>
-            <Text variant="body" color={T.ink3}>
-              {isLast ? 'Skip for now' : 'Skip this step'}
+          <Button label="Continue" onPress={goNext} loading={saveDetails.isPending} />
+          {canSkip && (
+            <Pressable onPress={skip} hitSlop={12} style={{ alignItems: 'center' }}>
+              <Text variant="body" color={T.ink3}>
+                Skip this step
+              </Text>
+            </Pressable>
+          )}
+          {saveDetails.isError && (
+            <Text variant="caption" color={T.accent} style={{ textAlign: 'center' }}>
+              Something went wrong. Please try again.
             </Text>
-          </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-// ─── Step dot ────────────────────────────────────────────────────────────────
 
 function StepDot({ active, done }: { active: boolean; done: boolean }) {
   const width = useSharedValue(active ? 24 : 8);
@@ -148,17 +154,11 @@ function StepDot({ active, done }: { active: boolean; done: boolean }) {
   );
 }
 
-// ─── Step 1: Bio ─────────────────────────────────────────────────────────────
-
 function StepBio({
   control,
 }: {
-  control: ReturnType<typeof useForm<ArtistSetupValues>>['control'];
+  control: ReturnType<typeof useForm<ArtistDetailsValues>>['control'];
 }) {
-  const { field: nameField, fieldState: nameState } = useController({
-    control,
-    name: 'display_name',
-  });
   const { field: bioField } = useController({ control, name: 'bio' });
 
   return (
@@ -168,36 +168,17 @@ function StepBio({
       <View style={{ gap: T.sp6 }}>
         <View style={{ gap: T.sp2 }}>
           <Text variant="caption" color={T.ink3}>
-            YOUR NAME
-          </Text>
-          <TextInput
-            value={nameField.value}
-            onChangeText={nameField.onChange}
-            onBlur={nameField.onBlur}
-            placeholder="Stage name or full name"
-            placeholderTextColor={T.ink3}
-            style={inputStyle}
-          />
-          {nameState.error && (
-            <Text variant="caption" color={T.accent}>
-              {nameState.error.message}
-            </Text>
-          )}
-        </View>
-
-        <View style={{ gap: T.sp2 }}>
-          <Text variant="caption" color={T.ink3}>
             SHORT BIO
           </Text>
           <TextInput
-            value={bioField.value}
+            value={bioField.value ?? ''}
             onChangeText={bioField.onChange}
             onBlur={bioField.onBlur}
             placeholder="What makes your performances unforgettable?"
             placeholderTextColor={T.ink3}
             multiline
             numberOfLines={4}
-            style={[inputStyle, { height: 100, textAlignVertical: 'top', paddingTop: T.sp4 }]}
+            style={[inputStyle, { height: 120, textAlignVertical: 'top', paddingTop: T.sp4 }]}
           />
           <Text variant="caption" color={T.ink3} style={{ textAlign: 'right' }}>
             {(bioField.value ?? '').length}/500
@@ -208,16 +189,14 @@ function StepBio({
   );
 }
 
-// ─── Step 2: Categories ───────────────────────────────────────────────────────
-
 function StepCategories({
   control,
   setValue,
   getValues,
 }: {
-  control: ReturnType<typeof useForm<ArtistSetupValues>>['control'];
-  setValue: ReturnType<typeof useForm<ArtistSetupValues>>['setValue'];
-  getValues: ReturnType<typeof useForm<ArtistSetupValues>>['getValues'];
+  control: ReturnType<typeof useForm<ArtistDetailsValues>>['control'];
+  setValue: ReturnType<typeof useForm<ArtistDetailsValues>>['setValue'];
+  getValues: ReturnType<typeof useForm<ArtistDetailsValues>>['getValues'];
 }) {
   const { fieldState } = useController({ control, name: 'categories' });
   const [selected, setSelected] = useState<string[]>(getValues('categories') ?? []);
@@ -265,16 +244,14 @@ function StepCategories({
   );
 }
 
-// ─── Step 3: Experience ───────────────────────────────────────────────────────
-
 function StepExperience({
   control,
   setValue,
   getValues,
 }: {
-  control: ReturnType<typeof useForm<ArtistSetupValues>>['control'];
-  setValue: ReturnType<typeof useForm<ArtistSetupValues>>['setValue'];
-  getValues: ReturnType<typeof useForm<ArtistSetupValues>>['getValues'];
+  control: ReturnType<typeof useForm<ArtistDetailsValues>>['control'];
+  setValue: ReturnType<typeof useForm<ArtistDetailsValues>>['setValue'];
+  getValues: ReturnType<typeof useForm<ArtistDetailsValues>>['getValues'];
 }) {
   const { field: yearsField } = useController({ control, name: 'years_experience' });
   const [selectedLangs, setSelectedLangs] = useState<string[]>(getValues('languages') ?? []);
@@ -340,28 +317,27 @@ function StepExperience({
   );
 }
 
-// ─── Step 4: Pricing ──────────────────────────────────────────────────────────
-
 function StepPricing({
   control,
   setValue,
   getValues,
 }: {
-  control: ReturnType<typeof useForm<ArtistSetupValues>>['control'];
-  setValue: ReturnType<typeof useForm<ArtistSetupValues>>['setValue'];
-  getValues: ReturnType<typeof useForm<ArtistSetupValues>>['getValues'];
+  control: ReturnType<typeof useForm<ArtistDetailsValues>>['control'];
+  setValue: ReturnType<typeof useForm<ArtistDetailsValues>>['setValue'];
+  getValues: ReturnType<typeof useForm<ArtistDetailsValues>>['getValues'];
 }) {
   const { field: priceField } = useController({ control, name: 'base_price' });
+  const { field: radiusField } = useController({ control, name: 'service_radius_km' });
   const [selectedUnit, setSelectedUnit] = useState<string>(getValues('price_unit') ?? 'per_event');
 
   function selectUnit(unit: string) {
     setSelectedUnit(unit);
-    setValue('price_unit', unit as ArtistSetupValues['price_unit']);
+    setValue('price_unit', unit as ArtistDetailsValues['price_unit']);
   }
 
   return (
     <View style={{ gap: T.sp8 }}>
-      <StepHeading upright="Set your" italic="rates" />
+      <StepHeading upright="Your" italic="rates" />
 
       <View style={{ gap: T.sp6 }}>
         <View style={{ gap: T.sp2 }}>
@@ -423,44 +399,6 @@ function StepPricing({
             })}
           </View>
         </View>
-      </View>
-    </View>
-  );
-}
-
-// ─── Step 5: Location ─────────────────────────────────────────────────────────
-
-function StepLocation({
-  control,
-}: {
-  control: ReturnType<typeof useForm<ArtistSetupValues>>['control'];
-}) {
-  const { field: cityField, fieldState: cityState } = useController({ control, name: 'city' });
-  const { field: radiusField } = useController({ control, name: 'service_radius_km' });
-
-  return (
-    <View style={{ gap: T.sp8 }}>
-      <StepHeading upright="Where are" italic="you based?" />
-
-      <View style={{ gap: T.sp6 }}>
-        <View style={{ gap: T.sp2 }}>
-          <Text variant="caption" color={T.ink3}>
-            YOUR CITY
-          </Text>
-          <TextInput
-            value={cityField.value ?? ''}
-            onChangeText={cityField.onChange}
-            onBlur={cityField.onBlur}
-            placeholder="e.g. Mumbai, Goa"
-            placeholderTextColor={T.ink3}
-            style={inputStyle}
-          />
-          {cityState.error && (
-            <Text variant="caption" color={T.accent}>
-              {cityState.error.message}
-            </Text>
-          )}
-        </View>
 
         <View style={{ gap: T.sp2 }}>
           <Text variant="caption" color={T.ink3}>
@@ -480,8 +418,6 @@ function StepLocation({
     </View>
   );
 }
-
-// ─── Shared ───────────────────────────────────────────────────────────────────
 
 function StepHeading({ upright, italic }: { upright: string; italic: string }) {
   return (

@@ -4,7 +4,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = 'artist' | 'organizer' | 'both' | 'admin';
+export type UserRole = 'artist' | 'organizer' | 'both' | 'attendee' | 'admin';
 export type PriceUnit = 'per_hour' | 'per_event' | 'per_day';
 export type ArtistCategory =
   | 'dj'
@@ -29,6 +29,7 @@ export type BookingStatus =
   | 'cancelled'
   | 'disputed';
 export type PaymentStatus = 'pending' | 'held' | 'released' | 'refunded' | 'failed';
+export type ArtistApplicationStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export type Database = {
   public: {
@@ -39,6 +40,7 @@ export type Database = {
           role: UserRole | null;
           display_name: string | null;
           phone: string | null;
+          phone_verified_at: string | null;
           email: string | null;
           avatar_url: string | null;
           city: string | null;
@@ -64,6 +66,8 @@ export type Database = {
           currency: string;
           service_radius_km: number | null;
           is_verified: boolean;
+          application_status: ArtistApplicationStatus;
+          application_submitted_at: string | null;
           total_bookings: number;
           avg_rating: number | null;
           created_at: string;
@@ -197,6 +201,17 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['reviews']['Row'], 'id' | 'created_at'>;
         Update: never;
       };
+      artist_documents: {
+        Row: {
+          id: string;
+          artist_id: string;
+          doc_type: 'id_front' | 'id_back' | 'selfie';
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['artist_documents']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['artist_documents']['Row']>;
+      };
       notifications: {
         Row: {
           id: string;
@@ -221,6 +236,7 @@ export type Database = {
       portfolio_type: PortfolioType;
       booking_status: BookingStatus;
       payment_status: PaymentStatus;
+      artist_application_status: ArtistApplicationStatus;
     };
   };
 };

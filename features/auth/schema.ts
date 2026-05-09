@@ -23,9 +23,20 @@ export const otpSchema = z.object({
 export type OtpValues = z.infer<typeof otpSchema>;
 
 export const roleSchema = z.object({
-  role: z.enum(['artist', 'organizer', 'both']),
+  role: z.enum(['artist', 'organizer', 'attendee']),
 });
 export type RoleValues = z.infer<typeof roleSchema>;
+
+export const profileBasicsSchema = z.object({
+  display_name: z.string().min(2, 'At least 2 characters').max(50),
+  city: z.string().min(2, 'Enter your city').max(100),
+  avatar_url: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+});
+export type ProfileBasicsValues = z.infer<typeof profileBasicsSchema>;
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Enter a valid email'),

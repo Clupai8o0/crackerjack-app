@@ -26,7 +26,7 @@ export const track = {
   screenViewed: (props: { screen: string }) => posthog?.capture('screen_viewed', props),
   signupCompleted: (props: { method: 'email' | 'phone' | 'google' | 'apple' }) =>
     posthog?.capture('signup_completed', props),
-  roleSelected: (props: { role: 'artist' | 'organizer' | 'both' }) =>
+  roleSelected: (props: { role: 'artist' | 'organizer' | 'both' | 'attendee' }) =>
     posthog?.capture('role_selected', props),
   artistProfileCompleted: () => posthog?.capture('artist_profile_completed'),
   portfolioItemUploaded: (props: { type: 'image' | 'video' }) =>

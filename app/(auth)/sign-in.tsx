@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, FormField, Text } from '@/components/ui';
 import { useSignIn } from '@/features/auth/mutations';
 import { type SignInValues, signInSchema } from '@/features/auth/schema';
+import { DEMO_MODE } from '@/lib/demo';
 import { T } from '@/lib/theme';
 
 export default function SignIn() {
@@ -19,6 +20,10 @@ export default function SignIn() {
   });
 
   async function onSubmit(values: SignInValues) {
+    if (DEMO_MODE) {
+      router.push('/(auth)/verify-phone');
+      return;
+    }
     setAuthError(null);
     try {
       await signIn.mutateAsync(values);
