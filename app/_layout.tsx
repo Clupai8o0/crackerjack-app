@@ -41,6 +41,12 @@ function AuthGate() {
   const userId = session?.user?.id;
   const { data: profile, isFetched: profileFetched, isError: profileError } = useProfile(userId);
 
+  const ready = initialized && (!session || profileFetched);
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
   // Sync profile → store so downstream components can read role etc.
   useEffect(() => {
     if (profile) {
@@ -89,6 +95,8 @@ function AuthGate() {
     if (!inAppGroup) router.replace('/(app)');
   }, [session, profile, profileFetched, initialized, router, segments]);
 
+  if (!ready) return null;
+
   return <Slot />;
 }
 
@@ -102,10 +110,7 @@ function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-      track.appOpened();
-    }
+    if (fontsLoaded) track.appOpened();
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;

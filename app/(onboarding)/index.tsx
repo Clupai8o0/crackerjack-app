@@ -13,61 +13,38 @@ import {
   View,
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Text } from '@/components/ui';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text } from '@/components/ui';
 import { T } from '@/lib/theme';
 
-const { width: W, height: H } = Dimensions.get('window');
-const HERO_SIZE = Math.round(W * 0.74);
+const { width: W } = Dimensions.get('window');
+const HERO_FIGURE = Math.round(W * 0.92);
+const MESH_OPACITY = 0.55; // bg shows through equally — tweak to taste
+const CARD_RADIUS = 36;
 
 // ─── Mesh gradient configs (3×3 = 9 control points) ──────────────────────────
-// All non-accent points use dark tinted greens (not pure black) so the whole
-// screen has a consistent green wash — brighter at accent points, dim elsewhere.
+// Each config is a dark green base (≈ T.bg) with TWO bright neon points so
+// the mesh reads as two glowing blobs floating over the page background
+// rather than a full color wash. Wrapped in MESH_OPACITY so T.bg shows
+// through equally, keeping the mesh and bg balanced.
 
 type MeshConfig = { colors: string[] };
 
+const D = '#06180C'; // near-T.bg dark green — the "rest is bg" color
+
 const MESH_CONFIGS: MeshConfig[] = [
   {
-    // ARTISTS — neon burst top-center, lime top-right, mint bottom-left
-    colors: [
-      '#0C2010',
-      '#39FF7A',
-      '#1A3818',
-      '#96FF3E',
-      '#0E2412',
-      '#0C1E10',
-      '#3BFFB8',
-      '#0A1A0C',
-      '#081408',
-    ],
+    // ARTISTS — blob top-right, blob bottom-left
+    //         TL  TC  TR  ML  MC  MR  BL  BC  BR
+    colors: [D, D, '#7BFFAE', D, D, D, '#3BFFB8', D, D],
   },
   {
-    // PAYMENTS — mint top-left, neon top-right, lime bottom-center
-    colors: [
-      '#3BFFB8',
-      '#122C1C',
-      '#39FF7A',
-      '#0C2016',
-      '#1A3820',
-      '#0E2418',
-      '#0A1610',
-      '#96FF3E',
-      '#0C1A10',
-    ],
+    // PAYMENTS — blob top-left, blob bottom-right
+    colors: ['#86FFD4', D, D, D, D, D, D, D, '#7BFFAE'],
   },
   {
-    // CRACKING — yellow-green top-left, neon right, mint bottom-right
-    colors: [
-      '#C4FF3E',
-      '#1A2C08',
-      '#0A1808',
-      '#162408',
-      '#39FF7A',
-      '#1A3014',
-      '#0A1208',
-      '#1A2C10',
-      '#3BFFB8',
-    ],
+    // CRACKING — blob top-center (lime), blob middle-right (mint)
+    colors: [D, '#C8FF82', D, D, D, '#3BFFB8', D, D, D],
   },
 ];
 
@@ -142,25 +119,69 @@ const HERO_SLIDES = SLIDES.filter((s) => s.type === 'hero');
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function PaginationDot({ active }: { active: boolean }) {
-  const width = useSharedValue(active ? 24 : 8);
+  const width = useSharedValue(active ? 28 : 8);
 
   useEffect(() => {
-    width.value = withTiming(active ? 24 : 8, { duration: 220 });
+    width.value = withTiming(active ? 28 : 8, { duration: 220 });
   }, [active, width]);
 
   const animStyle = useAnimatedStyle(() => ({ width: width.value }));
 
+  if (!active) {
+    return <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: T.ink3 }} />;
+  }
+
   return (
-    <Animated.View
-      style={[
-        animStyle,
-        {
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: active ? T.accent : T.ink3,
-        },
-      ]}
-    />
+    <Animated.View style={[animStyle, { height: 8, borderRadius: 4, overflow: 'hidden' }]}>
+      <LinearGradient
+        colors={['#3BFFB8', '#C8FF82']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
+
+function GradientButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[animatedStyle, { width: '100%' }]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => {
+          scale.value = withTiming(0.97, { duration: 120 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 120 });
+        }}
+        style={{
+          height: 56,
+          borderRadius: 999,
+          overflow: 'hidden',
+        }}
+        accessibilityRole="button"
+      >
+        <LinearGradient
+          colors={['#3BFFB8', '#7BFFAE', '#C8FF82']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text variant="label" color={T.inkDeep}>
+            {label}
+          </Text>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -194,7 +215,17 @@ function SlideHeadline({ text, isActive }: { text: string; isActive: boolean }) 
 
 // ─── Slide wrappers ──────────────────────────────────────────────────────────
 
-function WelcomeSlideView({ slide, isActive }: { slide: WelcomeSlide; isActive: boolean }) {
+function WelcomeSlideView({
+  slide,
+  isActive,
+  onPressCTA,
+  bottomInset,
+}: {
+  slide: WelcomeSlide;
+  isActive: boolean;
+  onPressCTA: () => void;
+  bottomInset: number;
+}) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(18);
 
@@ -214,15 +245,15 @@ function WelcomeSlideView({ slide, isActive }: { slide: WelcomeSlide; isActive: 
   }));
 
   return (
-    <View style={{ width: W, flex: 1 }}>
+    <View style={{ width: W, flex: 1, backgroundColor: T.bg }}>
       <Image
         source={require('@/assets/images/onboarding-welcome-bg.png')}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
       />
       <LinearGradient
-        colors={['transparent', 'rgba(26,80,45,0.55)', 'rgba(8,28,14,0.92)', '#060F08']}
-        locations={[0, 0.28, 0.56, 0.72]}
+        colors={['transparent', 'rgba(26,80,45,0.55)', 'rgba(8,28,14,0.92)', T.bg, T.bg]}
+        locations={[0, 0.28, 0.5, 0.67, 1]}
         style={StyleSheet.absoluteFill}
       />
       <View
@@ -230,12 +261,13 @@ function WelcomeSlideView({ slide, isActive }: { slide: WelcomeSlide; isActive: 
           flex: 1,
           justifyContent: 'flex-end',
           paddingHorizontal: T.sp7,
-          paddingBottom: T.sp7,
+          paddingBottom: T.sp9 + bottomInset,
+          gap: T.sp6,
         }}
       >
         <Image
           source={require('@/assets/images/crackerjack-logo.png')}
-          style={{ width: 110, height: 110, marginBottom: T.sp5 }}
+          style={{ width: 110, height: 110 }}
           contentFit="contain"
         />
         <Animated.View style={[animStyle, { gap: T.sp3 }]}>
@@ -248,6 +280,7 @@ function WelcomeSlideView({ slide, isActive }: { slide: WelcomeSlide; isActive: 
             </Text>
           ) : null}
         </Animated.View>
+        <GradientButton label={slide.cta} onPress={onPressCTA} />
       </View>
     </View>
   );
@@ -257,61 +290,54 @@ function HeroSlideView({
   slide,
   isActive,
   heroIndex,
+  ctaLabel,
+  onPressCTA,
+  bottomInset,
 }: {
   slide: HeroSlide;
   isActive: boolean;
   heroIndex: number;
+  ctaLabel: string;
+  onPressCTA: () => void;
+  bottomInset: number;
 }) {
   // biome-ignore lint/style/noNonNullAssertion: heroIndex is always 0–2
   const config = MESH_CONFIGS[heroIndex]!;
 
   return (
-    <View style={{ width: W, height: H, backgroundColor: T.bg }}>
-      {/* ── Mesh gradient — fills entire slide ────────────────────────── */}
-      <MeshGradientView
-        style={StyleSheet.absoluteFill}
-        columns={3}
-        rows={3}
-        colors={config.colors}
-        points={MESH_POINTS}
-        smoothsColors
-        resolution={{ x: 8, y: 8 }}
-      />
-
-      {/* ── Subtle dark vignette at bottom for text readability ────────── */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.85)']}
-        locations={[0.45, 0.7, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      {/* ── Hero photo ────────────────────────────────────────────────── */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <View
-          style={{
-            width: HERO_SIZE,
-            height: HERO_SIZE,
-            borderRadius: HERO_SIZE / 2,
-            overflow: 'hidden',
-            borderWidth: 2,
-            borderColor: `${T.accent}50`,
-          }}
-        >
-          <Image
-            source={slide.image}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-        </View>
+    <View style={{ width: W, flex: 1, backgroundColor: T.bg }}>
+      {/* ── Two-blob mesh — reduced opacity so T.bg shows through ─────── */}
+      <View style={[StyleSheet.absoluteFill, { opacity: MESH_OPACITY }]} pointerEvents="none">
+        <MeshGradientView
+          style={StyleSheet.absoluteFill}
+          columns={3}
+          rows={3}
+          colors={config.colors}
+          points={MESH_POINTS}
+          smoothsColors
+          resolution={{ x: 8, y: 8 }}
+        />
       </View>
 
-      {/* ── Headline + pagination ──────────────────────────────────────── */}
+      {/* ── Hero figure (image already contains disc + dots + black bg) ── */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Image
+          source={slide.image}
+          style={{ width: HERO_FIGURE, height: HERO_FIGURE }}
+          contentFit="contain"
+        />
+      </View>
+
+      {/* ── Bottom card — solid T.bg, contains headline + dots + CTA ──── */}
       <View
         style={{
+          backgroundColor: T.bg,
+          borderTopLeftRadius: CARD_RADIUS,
+          borderTopRightRadius: CARD_RADIUS,
           paddingHorizontal: T.sp7,
-          paddingBottom: T.sp9,
-          gap: T.sp5,
+          paddingTop: T.sp8,
+          paddingBottom: T.sp9 + bottomInset,
+          gap: T.sp6,
           alignItems: 'center',
         }}
       >
@@ -322,6 +348,7 @@ function HeroSlideView({
             <PaginationDot key={i} active={i === heroIndex} />
           ))}
         </View>
+        <GradientButton label={ctaLabel} onPress={onPressCTA} />
       </View>
     </View>
   );
@@ -331,6 +358,7 @@ function HeroSlideView({
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Slide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -360,13 +388,12 @@ export default function OnboardingScreen() {
     setCurrentIndex(prevIndex);
   }
 
-  // biome-ignore lint/style/noNonNullAssertion: invariant
-  const currentSlide = SLIDES[currentIndex]!;
-  const isLastSlide = currentIndex === SLIDES.length - 1;
   const isHeroSlide = currentIndex > 0;
+  const isLastSlide = currentIndex === SLIDES.length - 1;
+  const onPressCTA = isLastSlide ? handleComplete : goNext;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }} edges={['top']}>
       {isHeroSlide && (
         <Pressable
           onPress={goBack}
@@ -392,16 +419,28 @@ export default function OnboardingScreen() {
         renderItem={({ item, index }) => {
           const isActive = index === currentIndex;
           if (item.type === 'welcome') {
-            return <WelcomeSlideView slide={item} isActive={isActive} />;
+            return (
+              <WelcomeSlideView
+                slide={item}
+                isActive={isActive}
+                onPressCTA={onPressCTA}
+                bottomInset={insets.bottom}
+              />
+            );
           }
-          return <HeroSlideView slide={item} isActive={isActive} heroIndex={index - 1} />;
+          return (
+            <HeroSlideView
+              slide={item}
+              isActive={isActive}
+              heroIndex={index - 1}
+              ctaLabel={item.cta}
+              onPressCTA={onPressCTA}
+              bottomInset={insets.bottom}
+            />
+          );
         }}
         style={{ flex: 1 }}
       />
-
-      <View style={{ paddingHorizontal: T.sp7, paddingBottom: T.sp9 }}>
-        <Button label={currentSlide.cta} onPress={isLastSlide ? handleComplete : goNext} />
-      </View>
     </SafeAreaView>
   );
 }
